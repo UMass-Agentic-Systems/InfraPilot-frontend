@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react'
+import { mockUser } from '../data/mockData'
 
 const AuthContext = createContext(null)
 
@@ -6,7 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
 
   const signIn = () => {
-    setUser({ id: '1', name: 'Atharva Patil', email: 'atharva@example.com', avatar: '' })
+    setUser(mockUser)
   }
 
   const signOut = () => {
