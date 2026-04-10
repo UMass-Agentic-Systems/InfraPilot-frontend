@@ -11,43 +11,29 @@ function validate(name) {
   return ''
 }
 
-export default function NewAppModal({ isOpen, onClose }) {
+// Inner component — mounts fresh each time the modal opens, so state resets naturally
+function ModalContent({ onClose }) {
   const [name, setName] = useState('')
   const [touched, setTouched] = useState(false)
   const inputRef = useRef(null)
   const { createApp } = useChat()
   const navigate = useNavigate()
 
-  // Reset state and auto-focus on open
+  // Auto-focus on mount
   useEffect(() => {
-    if (isOpen) {
-      setName('')
-      setTouched(false)
-      setTimeout(() => inputRef.current?.focus(), 0)
-    }
-  }, [isOpen])
+    inputRef.current?.focus()
+  }, [])
 
   // Dismiss on Escape
   useEffect(() => {
-    if (!isOpen) return
     const handler = (e) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
+  }, [onClose])
 
   const trimmedLength = name.trim().length
   const currentError = touched ? validate(name) : ''
   const isValid = !validate(name)
-
-  const handleChange = (e) => {
-    setName(e.target.value)
-  }
-
-  const handleBlur = () => {
-    setTouched(true)
-  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -89,8 +75,8 @@ export default function NewAppModal({ isOpen, onClose }) {
               ref={inputRef}
               type="text"
               value={name}
-              onChange={handleChange}
-              onBlur={handleBlur}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => setTouched(true)}
               maxLength={40}
               placeholder="e.g. E-Commerce Platform"
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 text-sm focus:outline-none focus:border-brand-500 transition-colors"
@@ -121,4 +107,9 @@ export default function NewAppModal({ isOpen, onClose }) {
       </div>
     </div>
   )
+}
+
+export default function NewAppModal({ isOpen, onClose }) {
+  if (!isOpen) return null
+  return <ModalContent onClose={onClose} />
 }
