@@ -8,16 +8,24 @@ const TIER_CONFIG = {
   database: { icon: Database, colour: 'text-emerald-400' },
 }
 
+function podTotal(pods) {
+  return (pods.running ?? 0) + (pods.pending ?? 0) + (pods.error ?? 0)
+}
+
 export default function TierCard({ tierKey, tier }) {
   const { icon: Icon, colour } = TIER_CONFIG[tierKey] ?? { icon: Server, colour: 'text-gray-400' }
   const { name, tech, pods, resources, service, hpa, storage } = tier
+  const total = podTotal(pods)
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col gap-4 min-w-0">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <Icon className={`w-5 h-5 ${colour}`} />
-        <span className="font-semibold text-gray-100">{name}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Icon className={`w-5 h-5 ${colour}`} />
+          <span className="font-semibold text-gray-100">{name}</span>
+        </div>
+        <span className="text-xs text-gray-500">{total} pod{total !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Tech stack badges */}
@@ -31,9 +39,15 @@ export default function TierCard({ tierKey, tier }) {
 
       {/* Pod status */}
       <div className="flex flex-wrap gap-3">
-        <StatusBadge count={pods.running} status="running" />
-        <StatusBadge count={pods.pending} status="pending" />
-        <StatusBadge count={pods.error}   status="error" />
+        {total === 0 ? (
+          <span className="text-xs text-gray-500">No pods</span>
+        ) : (
+          <>
+            <StatusBadge count={pods.running} status="running" />
+            <StatusBadge count={pods.pending} status="pending" />
+            <StatusBadge count={pods.error}   status="error" />
+          </>
+        )}
       </div>
 
       {/* Resource usage */}
