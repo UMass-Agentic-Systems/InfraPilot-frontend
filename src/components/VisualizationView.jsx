@@ -2,7 +2,7 @@ import { LayoutDashboard } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { mockVisualizationData } from '../data/mockData'
 import ClusterInfo from './ClusterInfo'
-import TierCard from './TierCard'
+import ArchitectureDiagram from './ArchitectureDiagram'
 import MetricsPanel from './MetricsPanel'
 
 function EmptyState() {
@@ -30,20 +30,14 @@ export default function VisualizationView() {
   const { cluster, tiers, traffic } = data
 
   return (
-    <div className="h-full overflow-y-auto p-4 space-y-4">
-      {/* Cluster header */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-100">{cluster.name}</h2>
-        <div className="mt-2">
-          <ClusterInfo cluster={cluster} />
-        </div>
-      </div>
+    <div className="h-full overflow-y-auto p-6 space-y-8">
+      {/* Cluster info */}
+      <ClusterInfo cluster={cluster} />
 
-      {/* Tier cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {Object.entries(tiers).map(([tierKey, tier]) => (
-          <TierCard key={tierKey} tierKey={tierKey} tier={tier} />
-        ))}
+      {/* Architecture diagram */}
+      <div>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Architecture</h3>
+        <ArchitectureDiagram tiers={tiers} />
       </div>
 
       {/* Traffic metrics */}

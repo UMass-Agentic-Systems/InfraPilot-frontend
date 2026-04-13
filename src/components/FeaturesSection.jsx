@@ -11,7 +11,7 @@ const features = [
     icon: Shield,
     title: 'SRE Monitoring',
     description:
-      'Configures Prometheus, Grafana, alerting rules, and incident response automation for your deployments.',
+      'Continuously monitors cluster health and analyzes warning events, generates remediation plans.',
   },
   {
     icon: MessageSquare,

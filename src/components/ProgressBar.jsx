@@ -4,12 +4,12 @@ function barColour(value) {
   return 'bg-emerald-500'
 }
 
-export default function ProgressBar({ value, label }) {
+export default function ProgressBar({ value, label, limit }) {
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs text-gray-400">
         <span>{label}</span>
-        <span>{value}%</span>
+        <span>{value}%{limit ? ` / ${limit}` : ''}</span>
       </div>
       <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
         <div

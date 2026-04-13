@@ -1,4 +1,4 @@
-import { Monitor, Server, Database } from 'lucide-react'
+import { Monitor, Server, Database, Globe, FileText, HardDrive } from 'lucide-react'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
 
@@ -8,62 +8,63 @@ const TIER_CONFIG = {
   database: { icon: Database, colour: 'text-emerald-400' },
 }
 
-function podTotal(pods) {
-  return (pods.running ?? 0) + (pods.pending ?? 0) + (pods.error ?? 0)
-}
-
 export default function TierCard({ tierKey, tier }) {
   const { icon: Icon, colour } = TIER_CONFIG[tierKey] ?? { icon: Server, colour: 'text-gray-400' }
   const { name, tech, pods, resources, service, hpa, storage } = tier
-  const total = podTotal(pods)
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col gap-4 min-w-0">
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col gap-4 min-w-0 h-full">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Icon className={`w-5 h-5 ${colour}`} />
-          <span className="font-semibold text-gray-100">{name}</span>
-        </div>
-        <span className="text-xs text-gray-500">{total} pod{total !== 1 ? 's' : ''}</span>
+      <div className="flex items-center gap-2.5">
+        <Icon className={`w-6 h-6 ${colour}`} />
+        <span className="text-lg font-bold text-gray-100">{name}</span>
       </div>
 
       {/* Tech stack badges */}
       <div className="flex flex-wrap gap-1.5">
         {tech.map((t) => (
-          <span key={t} className="px-2 py-0.5 bg-gray-800 border border-gray-700 rounded-full text-xs text-gray-300">
+          <span key={t} className="px-2.5 py-1 bg-gray-800 border border-gray-700 rounded-full text-xs text-gray-300">
             {t}
           </span>
         ))}
       </div>
 
       {/* Pod status */}
-      <div className="flex flex-wrap gap-3">
-        {total === 0 ? (
-          <span className="text-xs text-gray-500">No pods</span>
-        ) : (
-          <>
-            <StatusBadge count={pods.running} status="running" />
-            <StatusBadge count={pods.pending} status="pending" />
-            <StatusBadge count={pods.error}   status="error" />
-          </>
-        )}
+      <div>
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pods</span>
+        <div className="flex flex-wrap gap-3 mt-1.5">
+          <StatusBadge count={pods.running} status="running" />
+          <StatusBadge count={pods.pending} status="pending" />
+          <StatusBadge count={pods.error}   status="error" />
+        </div>
       </div>
 
       {/* Resource usage */}
-      <div className="space-y-2">
-        <ProgressBar value={resources.cpuUsage}    label="CPU" />
-        <ProgressBar value={resources.memoryUsage} label="Memory" />
+      <div className="space-y-3">
+        <ProgressBar label="CPU" value={resources.cpuUsage} limit={resources.cpuLimit} />
+        <ProgressBar label="Memory" value={resources.memoryUsage} limit={resources.memoryLimit} />
       </div>
 
       {/* Footer */}
-      <div className="text-xs text-gray-400 space-y-1 border-t border-gray-800 pt-3">
-        <div>{service.type} : {service.port}</div>
+      <div className="mt-auto" />
+      <div className="text-xs text-gray-400 space-y-1.5 border-t border-gray-800 pt-3">
+        {service && (
+          <div className="flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-gray-500" />
+            {service.type} :{service.port}
+          </div>
+        )}
         {hpa && (
-          <div>HPA {hpa.minReplicas}–{hpa.maxReplicas} replicas · {hpa.cpuTarget}% CPU target</div>
+          <div className="flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-gray-500" />
+            HPA {hpa.minReplicas}-{hpa.maxReplicas} replicas (CPU target {hpa.cpuTarget}%)
+          </div>
         )}
         {storage && (
-          <div>{storage.used} / {storage.size} ({storage.class})</div>
+          <div className="flex items-center gap-1.5">
+            <HardDrive className="w-3.5 h-3.5 text-gray-500" />
+            {storage.used} / {storage.size} ({storage.class})
+          </div>
         )}
       </div>
     </div>
