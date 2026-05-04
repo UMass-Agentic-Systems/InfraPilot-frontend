@@ -8,17 +8,21 @@ import MetricsPanel from './MetricsPanel'
 import DeploymentSelector from './DeploymentSelector'
 import RemediationPlans from './RemediationPlans'
 
-function EmptyState() {
+function EmptyState({ hadDeployments }) {
+  const headline = hadDeployments
+    ? 'All deployments removed'
+    : 'Infrastructure not yet provisioned'
+  const detail = hadDeployments
+    ? 'Every deployment in this session has been deleted. Deploy a new app via chat to see infrastructure here.'
+    : 'Use the chat to deploy your app first.'
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
       <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center">
         <LayoutDashboard className="w-6 h-6 text-gray-500" />
       </div>
       <div>
-        <p className="text-sm font-medium text-gray-300">Infrastructure not yet provisioned</p>
-        <p className="text-xs text-gray-500 mt-1">
-          Use the chat to deploy your app first.
-        </p>
+        <p className="text-sm font-medium text-gray-300">{headline}</p>
+        <p className="text-xs text-gray-500 mt-1">{detail}</p>
       </div>
     </div>
   )
@@ -34,7 +38,7 @@ function LoadingSkeleton() {
   )
 }
 
-export default function VisualizationView({ deployments, selectedDeploymentId, onSelectDeployment }) {
+export default function VisualizationView({ deployments, selectedDeploymentId, onSelectDeployment, sessionId, hadDeployments = false }) {
   const { token } = useAuth()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -47,7 +51,7 @@ export default function VisualizationView({ deployments, selectedDeploymentId, o
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setFetchError('')
-    getVisualization(token, selectedDeploymentId)
+    getVisualization(token, selectedDeploymentId, sessionId)
       .then((res) => {
         if (cancelled) return
         setData(res)
@@ -64,12 +68,12 @@ export default function VisualizationView({ deployments, selectedDeploymentId, o
     return () => {
       cancelled = true
     }
-  }, [selectedDeploymentId, token, reloadTick])
+  }, [selectedDeploymentId, token, sessionId, reloadTick])
 
   const matchedData = data && data.deployment_id === selectedDeploymentId ? data : null
 
   if (!deployments || deployments.length === 0) {
-    return <EmptyState />
+    return <EmptyState hadDeployments={hadDeployments} />
   }
 
   return (

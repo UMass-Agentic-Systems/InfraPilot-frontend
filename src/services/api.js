@@ -61,9 +61,14 @@ export const getSession = (token, id) =>
 export const deleteSession = (token, id) =>
   apiFetch(`/api/v1/chat/sessions/${id}`, { method: 'DELETE', token })
 
+export const listSessionDeployments = (token, sessionId) =>
+  apiFetch(`/api/v1/chat/sessions/${sessionId}/deployments`, { token })
+
 // Visualization
-export const getVisualization = (token, deploymentId) =>
-  apiFetch(`/api/v1/visualize/${deploymentId}`, { token })
+export const getVisualization = (token, deploymentId, sessionId) => {
+  const qs = sessionId != null ? `?session_id=${encodeURIComponent(sessionId)}` : ''
+  return apiFetch(`/api/v1/visualize/${deploymentId}${qs}`, { token })
+}
 
 // Monitoring
 export const listPlans = (token) =>

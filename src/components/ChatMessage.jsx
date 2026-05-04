@@ -1,5 +1,5 @@
 import { Wrench, Shield } from 'lucide-react'
-import { parseMetadata } from '../context/ChatContext'
+import { deriveMessageMetadata } from '../context/ChatContext'
 import MetadataActions from './MetadataActions'
 import SreAlertBanner from './SreAlertBanner'
 
@@ -16,8 +16,8 @@ function formatTime(isoString) {
 }
 
 export default function ChatMessage({ message }) {
-  const { id, role, content, created_at, metadata_json } = message
-  const metadata = parseMetadata(metadata_json)
+  const { id, role, content, created_at } = message
+  const metadata = deriveMessageMetadata(message)
   const isBackgroundAlert = metadata?.source === 'background'
   const domId = typeof id === 'number' ? `chat-msg-${id}` : undefined
 

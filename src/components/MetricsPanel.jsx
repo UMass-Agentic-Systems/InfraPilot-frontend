@@ -16,7 +16,11 @@ function metricColour(key, value) {
 }
 
 export default function MetricsPanel({ traffic }) {
-  if (!traffic) {
+  const presentMetrics = traffic
+    ? METRICS.filter(({ key }) => traffic[key] != null)
+    : []
+
+  if (presentMetrics.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -35,9 +39,8 @@ export default function MetricsPanel({ traffic }) {
         Traffic & Performance
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        {METRICS.map(({ key, label, icon: Icon, iconColour, unit, format }) => {
+        {presentMetrics.map(({ key, label, icon: Icon, iconColour, unit, format }) => {
           const value = traffic[key]
-          if (value == null) return null
           const colour = metricColour(key, value)
           const resolvedIconColour = iconColour ?? colour
 

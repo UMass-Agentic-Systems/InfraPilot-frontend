@@ -18,6 +18,62 @@ export function parseMetadata(metadataJson) {
   }
 }
 
+// The backend chat module currently does not populate `metadata_json` for the
+// agent's deploy/SRE replies (only the background SRE monitor does). Fall back
+// to parsing the agent's reply text so the Visualization tab and inline action
+// buttons still work end-to-end. Spec FR-7.8 / FR-10.4 / FR-11.2 depend on
+// surfacing `deployment_id` and `plan_id` from chat history.
+const DEPLOY_RE = /deployment id[:\s]+(\d+)(?:[^\d]+status[:\s]+(\w+))?/i
+const DEPLOY_APP_RE = /app[:\s]+([\w.-]+)/i
+const DEPLOY_FAIL_RE = /deployment failed/i
+const DELETE_RE = /deleted deployment id[:\s]+(\d+)/i
+const PLAN_RE = /plan id[:\s]+(\d+)(?:[^a-z]+status[:\s]+([\w_]+))?/i
+
+export function deriveMessageMetadata(message) {
+  if (!message) return null
+  const explicit = parseMetadata(message.metadata_json)
+  if (explicit) return explicit
+
+  const content = typeof message.content === 'string' ? message.content : ''
+
+  if (message.role === 'infra-agent') {
+    const deleteMatch = content.match(DELETE_RE)
+    if (deleteMatch) {
+      const appMatch = content.match(DEPLOY_APP_RE)
+      return {
+        deployment_id: Number(deleteMatch[1]),
+        app_name: appMatch ? appMatch[1] : undefined,
+        status: 'deleted',
+      }
+    }
+    const deployMatch = content.match(DEPLOY_RE)
+    if (deployMatch) {
+      const appMatch = content.match(DEPLOY_APP_RE)
+      return {
+        deployment_id: Number(deployMatch[1]),
+        app_name: appMatch ? appMatch[1] : undefined,
+        status: deployMatch[2] || 'deployed',
+      }
+    }
+    if (DEPLOY_FAIL_RE.test(content)) {
+      return { deployment_id: null, status: 'failed' }
+    }
+  }
+
+  if (message.role === 'sre-agent') {
+    const planMatch = content.match(PLAN_RE)
+    if (planMatch) {
+      const planStatus = (planMatch[2] || '').toLowerCase()
+      return {
+        plan_id: Number(planMatch[1]),
+        status: planStatus || 'awaiting_approval',
+      }
+    }
+  }
+
+  return null
+}
+
 export function ChatProvider({ children }) {
   const { token, isAuthenticated } = useAuth()
   const { toasts, pushToast, dismissToast } = useToastState()

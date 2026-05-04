@@ -1,46 +1,90 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import ChatWindow from '../components/ChatWindow'
 import VisualizationView from '../components/VisualizationView'
 import ViewToggle from '../components/ViewToggle'
-import { useChat, parseMetadata } from '../context/ChatContext'
+import { useChat, deriveMessageMetadata } from '../context/ChatContext'
+import { useAuth } from '../context/AuthContext'
+import { listSessionDeployments } from '../services/api'
 
 export const VIEW_INFRA_EVENT = 'infrapilot:view-infrastructure'
+export const DEPLOYMENTS_CHANGED_EVENT = 'infrapilot:deployments-changed'
 
-function extractDeployments(messages) {
-  if (!messages) return []
-  const seen = new Map()
-  for (const msg of messages) {
-    const meta = parseMetadata(msg.metadata_json)
-    if (!meta || meta.deployment_id == null) continue
-    const existing = seen.get(meta.deployment_id)
-    const candidate = {
-      deployment_id: meta.deployment_id,
-      app_name: meta.app_name || `Deployment ${meta.deployment_id}`,
-      status: meta.status || 'unknown',
-      created_at: msg.created_at,
-    }
-    if (!existing || (msg.created_at || '') > (existing.created_at || '')) {
-      seen.set(meta.deployment_id, candidate)
-    }
+function normaliseDeployment(d) {
+  return {
+    deployment_id: d.id,
+    app_name: d.app_name,
+    status: d.status,
+    created_at: d.created_at,
   }
-  return Array.from(seen.values()).sort((a, b) =>
-    (b.created_at || '').localeCompare(a.created_at || '')
-  )
 }
 
 function SessionView({ sessionId }) {
   const [activeView, setActiveView] = useState('chat')
   const { messagesBySession, setActiveSessionId } = useChat()
+  const { token } = useAuth()
 
   useEffect(() => {
     setActiveSessionId(sessionId)
     return () => setActiveSessionId(null)
   }, [sessionId, setActiveSessionId])
 
-  const messages = messagesBySession[sessionId]
-  const deployments = useMemo(() => extractDeployments(messages || []), [messages])
+  const [deployments, setDeployments] = useState([])
+  const [hadDeployments, setHadDeployments] = useState(false)
   const [userSelectedDeploymentId, setUserSelectedDeploymentId] = useState(null)
+
+  const refetchDeployments = useCallback(async () => {
+    if (!token || !sessionId) return
+    try {
+      const list = await listSessionDeployments(token, sessionId)
+      const normalised = (list || []).map(normaliseDeployment)
+      if (normalised.length > 0) setHadDeployments(true)
+      setDeployments(normalised)
+    } catch {
+      // 404 (session gone) or transient — leave the list empty rather than
+      // throw; the visualization tab will gracefully show its empty state.
+      setDeployments([])
+    }
+  }, [token, sessionId])
+
+  // Initial fetch on session change.
+  useEffect(() => {
+    // refetchDeployments is async — setState calls happen after await, so
+    // they're not the synchronous setState the lint rule warns about.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refetchDeployments()
+  }, [refetchDeployments])
+
+  // Refetch when the chat stream surfaces a new deploy/delete bubble. The
+  // ChatContext dispatches DEPLOYMENTS_CHANGED_EVENT on those events; the
+  // window-event channel keeps this page lightly coupled to ChatContext.
+  useEffect(() => {
+    const handler = () => refetchDeployments()
+    window.addEventListener(DEPLOYMENTS_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(DEPLOYMENTS_CHANGED_EVENT, handler)
+  }, [refetchDeployments])
+
+  // Defence-in-depth: any time a new infra-agent bubble lands in this session
+  // mentioning a deploy or delete, refetch. Cheaper than re-rendering the
+  // dropdown every keystroke.
+  const messages = messagesBySession[sessionId]
+  const lastDeployTouch = useMemo(() => {
+    if (!messages || messages.length === 0) return null
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const m = messages[i]
+      if (m.role !== 'infra-agent') continue
+      const meta = deriveMessageMetadata(m)
+      if (meta && (meta.deployment_id != null || meta.status === 'deleted')) {
+        return m.id
+      }
+    }
+    return null
+  }, [messages])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (lastDeployTouch != null) refetchDeployments()
+  }, [lastDeployTouch, refetchDeployments])
 
   const selectedDeploymentId = useMemo(() => {
     if (deployments.length === 0) return null
@@ -77,9 +121,11 @@ function SessionView({ sessionId }) {
           <ChatWindow sessionId={sessionId} />
         ) : (
           <VisualizationView
+            sessionId={Number(sessionId)}
             deployments={deployments}
             selectedDeploymentId={selectedDeploymentId}
             onSelectDeployment={setUserSelectedDeploymentId}
+            hadDeployments={hadDeployments}
           />
         )}
       </div>

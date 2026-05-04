@@ -27,27 +27,33 @@ export default function MetadataActions({ metadata }) {
 
   if (!metadata || typeof metadata !== 'object') return null
 
-  // Deploy result
+  // Deploy / delete result
   if (metadata.deployment_id != null && metadata.status && metadata.plan_id == null) {
     const isDeployed = metadata.status === 'deployed'
     const isFailed = metadata.status === 'failed'
+    const isDeleted = metadata.status === 'deleted'
     return (
       <div className="mt-2 flex items-center gap-2 flex-wrap">
         {isDeployed && <StatusPill tone="green">Deployed</StatusPill>}
         {isFailed && <StatusPill tone="red">Failed</StatusPill>}
-        {!isDeployed && !isFailed && <StatusPill tone="amber">{metadata.status}</StatusPill>}
-        <button
-          type="button"
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent(VIEW_INFRA_EVENT, { detail: { deploymentId: metadata.deployment_id } })
-            )
-          }
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-md transition-colors"
-        >
-          <LayoutDashboard className="w-3.5 h-3.5" />
-          View Infrastructure
-        </button>
+        {isDeleted && <StatusPill tone="gray">Deleted</StatusPill>}
+        {!isDeployed && !isFailed && !isDeleted && (
+          <StatusPill tone="amber">{metadata.status}</StatusPill>
+        )}
+        {!isDeleted && (
+          <button
+            type="button"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent(VIEW_INFRA_EVENT, { detail: { deploymentId: metadata.deployment_id } })
+              )
+            }
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-md transition-colors"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            View Infrastructure
+          </button>
+        )}
       </div>
     )
   }

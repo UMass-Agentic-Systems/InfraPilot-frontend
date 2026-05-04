@@ -17,12 +17,12 @@ function formatDate(iso) {
   })
 }
 
+// The visualize endpoint's RemediationPlanRef returns only {approved, applied}
+// for state — there's no `rejected` field, so we cannot distinguish "rejected"
+// from "pending" here. Stick to the three states we can prove from the data.
 function statusInfo(plan) {
   if (plan.applied) return { label: 'Applied', tone: 'bg-blue-500/15 text-blue-200 border-blue-500/30' }
   if (plan.approved) return { label: 'Approved', tone: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' }
-  if (!plan.approved && plan.applied === false && plan.approved === false && plan.rejected) {
-    return { label: 'Rejected', tone: 'bg-gray-700/40 text-gray-300 border-gray-600/40' }
-  }
   return { label: 'Pending', tone: 'bg-amber-500/15 text-amber-200 border-amber-500/30' }
 }
 
@@ -83,13 +83,6 @@ function PlanCard({ plan, onAfterDecision }) {
             </span>
           )}
         </button>
-      )}
-
-      {plan.rationale && expanded && (
-        <div className="mt-2 text-xs text-gray-400 border-t border-gray-800 pt-2 whitespace-pre-wrap">
-          <span className="text-gray-500 font-semibold">Rationale: </span>
-          {plan.rationale}
-        </div>
       )}
 
       {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
