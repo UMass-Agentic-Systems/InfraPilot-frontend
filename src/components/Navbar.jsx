@@ -10,7 +10,7 @@ export default function Navbar() {
           <span className="text-lg font-semibold text-gray-100">InfraPilot</span>
         </div>
         <Link
-          to="/signin"
+          to="/login"
           className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
           Sign In

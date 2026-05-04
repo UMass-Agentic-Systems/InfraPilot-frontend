@@ -1,33 +1,40 @@
+import { Fragment } from 'react'
 import { ArrowRight, ArrowDown } from 'lucide-react'
 import TierCard from './TierCard'
 
-const TIER_ORDER = ['frontend', 'backend', 'database']
-
 export default function ArchitectureDiagram({ tiers }) {
+  if (!tiers || tiers.length === 0) {
+    return (
+      <p className="text-sm text-gray-500">No workloads found in cluster.</p>
+    )
+  }
+
   return (
     <div>
-      {/* Desktop: horizontal with ArrowRight */}
-      <div className="hidden lg:grid grid-cols-[1fr_auto_1fr_auto_1fr] items-stretch gap-3">
-        {TIER_ORDER.map((tierKey, i) => (
-          <>
-            <TierCard key={tierKey} tierKey={tierKey} tier={tiers[tierKey]} />
-            {i < TIER_ORDER.length - 1 && (
-              <div key={`arrow-${tierKey}`} className="flex items-center">
+      {/* Desktop: horizontal flow with arrows between tiers */}
+      <div className="hidden lg:flex items-stretch gap-3 overflow-x-auto">
+        {tiers.map((tier, i) => (
+          <Fragment key={`${tier.name}-${i}`}>
+            <div className="flex-1 min-w-[18rem]">
+              <TierCard tier={tier} />
+            </div>
+            {i < tiers.length - 1 && (
+              <div className="flex items-center">
                 <ArrowRight className="w-5 h-5 text-gray-600" />
               </div>
             )}
-          </>
+          </Fragment>
         ))}
       </div>
 
-      {/* Mobile: vertical with ArrowDown */}
+      {/* Mobile: vertical stack with downward arrows */}
       <div className="flex lg:hidden flex-col items-center gap-3">
-        {TIER_ORDER.map((tierKey, i) => (
-          <div key={tierKey} className="w-full flex flex-col items-center gap-3">
+        {tiers.map((tier, i) => (
+          <div key={`${tier.name}-${i}`} className="w-full flex flex-col items-center gap-3">
             <div className="w-full">
-              <TierCard tierKey={tierKey} tier={tiers[tierKey]} />
+              <TierCard tier={tier} />
             </div>
-            {i < TIER_ORDER.length - 1 && (
+            {i < tiers.length - 1 && (
               <ArrowDown className="w-5 h-5 text-gray-600 flex-shrink-0" />
             )}
           </div>

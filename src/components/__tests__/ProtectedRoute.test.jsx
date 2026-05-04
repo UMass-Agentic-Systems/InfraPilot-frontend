@@ -14,7 +14,7 @@ vi.mock('../../context/AuthContext', () => {
 
 import { __setAuth } from '../../context/AuthContext'
 
-function SignInPage() {
+function LoginPage() {
   return <div>Sign In Page</div>
 }
 
@@ -26,7 +26,7 @@ function renderRoute() {
   return render(
     <MemoryRouter initialEntries={['/dashboard']}>
       <Routes>
-        <Route path="/signin" element={<SignInPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardContent />} />
         </Route>
@@ -36,7 +36,7 @@ function renderRoute() {
 }
 
 describe('ProtectedRoute', () => {
-  it('redirects to /signin when user is not authenticated', () => {
+  it('redirects to /login when user is not authenticated', () => {
     __setAuth(false)
     renderRoute()
     expect(screen.getByText('Sign In Page')).toBeInTheDocument()
@@ -53,7 +53,7 @@ describe('ProtectedRoute', () => {
   it('uses replace on Navigate so back button skips the protected page', () => {
     __setAuth(false)
     renderRoute()
-    // If Navigate used replace, we end up on /signin but the history length stays 1
+    // If Navigate used replace, we end up on /login but the history length stays 1
     // (MemoryRouter starts with 1 entry and replace doesn't add another)
     expect(screen.getByText('Sign In Page')).toBeInTheDocument()
   })
