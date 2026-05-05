@@ -84,6 +84,9 @@ export function useWebSocket(sessionId, token, handlers = {}) {
           case 'sre_alert':
             handlersRef.current.onSreAlert?.(frame)
             break
+          case 'plan_update':
+            handlersRef.current.onPlanUpdate?.(frame)
+            break
           case 'typing':
             handlersRef.current.onTyping?.(frame)
             break

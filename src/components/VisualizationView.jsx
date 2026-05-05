@@ -38,7 +38,7 @@ function LoadingSkeleton() {
   )
 }
 
-export default function VisualizationView({ deployments, selectedDeploymentId, onSelectDeployment, sessionId, hadDeployments = false }) {
+export default function VisualizationView({ deployments, selectedDeploymentId, onSelectDeployment, hadDeployments = false }) {
   const { token } = useAuth()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -51,7 +51,7 @@ export default function VisualizationView({ deployments, selectedDeploymentId, o
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setFetchError('')
-    getVisualization(token, selectedDeploymentId, sessionId)
+    getVisualization(token, selectedDeploymentId)
       .then((res) => {
         if (cancelled) return
         setData(res)
@@ -68,7 +68,7 @@ export default function VisualizationView({ deployments, selectedDeploymentId, o
     return () => {
       cancelled = true
     }
-  }, [selectedDeploymentId, token, sessionId, reloadTick])
+  }, [selectedDeploymentId, token, reloadTick])
 
   const matchedData = data && data.deployment_id === selectedDeploymentId ? data : null
 

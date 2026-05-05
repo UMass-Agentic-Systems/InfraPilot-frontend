@@ -65,10 +65,8 @@ export const listSessionDeployments = (token, sessionId) =>
   apiFetch(`/api/v1/chat/sessions/${sessionId}/deployments`, { token })
 
 // Visualization
-export const getVisualization = (token, deploymentId, sessionId) => {
-  const qs = sessionId != null ? `?session_id=${encodeURIComponent(sessionId)}` : ''
-  return apiFetch(`/api/v1/visualize/${deploymentId}${qs}`, { token })
-}
+export const getVisualization = (token, deploymentId) =>
+  apiFetch(`/api/v1/visualize/${deploymentId}`, { token })
 
 // Monitoring
 export const listPlans = (token) =>

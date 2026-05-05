@@ -91,6 +91,15 @@ export function ChatProvider({ children }) {
     activeSessionIdRef.current = activeSessionId
   }, [activeSessionId])
 
+  // Rejected plan IDs are tracked in a ref (backed by localStorage) so
+  // refreshPendingPlans always filters them out across re-fetches and page
+  // refreshes. A plain dismissPlan() would be undone by the next background
+  // refresh triggered by onSreAlert, and lost on page reload.
+  const REJECTED_KEY = 'infrapilot_rejected_plans'
+  const rejectedPlanIdsRef = useRef(
+    new Set(JSON.parse(localStorage.getItem(REJECTED_KEY) || '[]'))
+  )
+
   const refreshSessions = useCallback(async () => {
     if (!token) return []
     const list = await api.listSessions(token)
@@ -105,13 +114,21 @@ export function ChatProvider({ children }) {
     if (!token) return []
     try {
       const plans = await api.listPlans(token)
-      const pending = (plans || []).filter((p) => !p.approved && !p.applied)
+      const pending = (plans || []).filter(
+        (p) => !p.approved && !p.applied && !rejectedPlanIdsRef.current.has(p.id)
+      )
       setPendingPlans(pending)
       return pending
     } catch {
       return []
     }
   }, [token])
+
+  const dismissPlan = useCallback((planId) => {
+    rejectedPlanIdsRef.current.add(planId)
+    localStorage.setItem(REJECTED_KEY, JSON.stringify([...rejectedPlanIdsRef.current]))
+    setPendingPlans((prev) => prev.filter((p) => p.id !== planId))
+  }, [])
 
   const createSession = useCallback(
     async (title) => {
@@ -169,6 +186,8 @@ export function ChatProvider({ children }) {
     if (isAuthenticated) {
       refreshPendingPlans()
     } else {
+      rejectedPlanIdsRef.current = new Set()
+      localStorage.removeItem(REJECTED_KEY)
       setSessions([])
       setMessagesBySession({})
       setActiveSessionId(null)
@@ -202,7 +221,9 @@ export function ChatProvider({ children }) {
         }
       },
       onSreAlert: (frame) => {
-        const sid = activeSessionIdRef.current
+        // Use the session the backend persisted the message in (frame.session_id).
+        // Falls back to the active session for standalone deployments.
+        const sid = frame?.session_id ?? activeSessionIdRef.current
         const msg = frame?.message
         if (sid && msg) {
           setMessagesBySession((prev) => {
@@ -219,6 +240,36 @@ export function ChatProvider({ children }) {
           content: msg?.content || 'New alert',
         })
         refreshPendingPlans()
+      },
+      onPlanUpdate: (frame) => {
+        const { plan_id, approved, applied } = frame
+        if (plan_id == null) return
+        setMessagesBySession((prev) => {
+          let changed = false
+          const next = {}
+          for (const [sid, messages] of Object.entries(prev)) {
+            next[sid] = messages.map((msg) => {
+              const meta = parseMetadata(msg.metadata_json)
+              if (!meta || meta.plan_id !== plan_id) return msg
+              changed = true
+              return {
+                ...msg,
+                metadata_json: JSON.stringify({
+                  ...meta,
+                  approved,
+                  applied,
+                  status: approved ? 'approved' : 'rejected',
+                }),
+              }
+            })
+          }
+          return changed ? next : prev
+        })
+        if (approved) {
+          refreshPendingPlans()
+        } else {
+          dismissPlan(plan_id)
+        }
       },
       onTyping: (frame) => {
         if (!frame?.agent) return
@@ -244,7 +295,7 @@ export function ChatProvider({ children }) {
         }
       },
     }),
-    [pushToast, refreshPendingPlans, loadHistory]
+    [pushToast, refreshPendingPlans, loadHistory, dismissPlan]
   )
 
   const { status: wsStatus, sendMessage: wsSend, retry: wsRetry } = useWebSocket(
@@ -291,6 +342,7 @@ export function ChatProvider({ children }) {
       toasts,
       refreshSessions,
       refreshPendingPlans,
+      dismissPlan,
       createSession,
       deleteSession,
       sendMessage,
@@ -310,6 +362,7 @@ export function ChatProvider({ children }) {
       toasts,
       refreshSessions,
       refreshPendingPlans,
+      dismissPlan,
       createSession,
       deleteSession,
       sendMessage,

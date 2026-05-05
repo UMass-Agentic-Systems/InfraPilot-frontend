@@ -17,23 +17,27 @@ function formatDate(iso) {
   })
 }
 
-// The visualize endpoint's RemediationPlanRef returns only {approved, applied}
-// for state — there's no `rejected` field, so we cannot distinguish "rejected"
-// from "pending" here. Stick to the three states we can prove from the data.
 function statusInfo(plan) {
   if (plan.applied) return { label: 'Applied', tone: 'bg-blue-500/15 text-blue-200 border-blue-500/30' }
   if (plan.approved) return { label: 'Approved', tone: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' }
+  if (plan.rejected) return { label: 'Rejected', tone: 'bg-gray-700/40 text-gray-300 border-gray-600/40' }
   return { label: 'Pending', tone: 'bg-amber-500/15 text-amber-200 border-amber-500/30' }
 }
 
-function PlanCard({ plan, onAfterDecision }) {
+function PlanCard({ plan, onAfterDecision, onChanged }) {
   const { token } = useAuth()
+  const { dismissPlan } = useChat()
   const [expanded, setExpanded] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [decided, setDecided] = useState(null) // null | { approved: bool }
 
-  const isPending = !plan.approved && !plan.applied
-  const status = statusInfo(plan)
+  const isPending = !plan.approved && !plan.applied && !plan.rejected && decided === null
+  const status = decided !== null
+    ? decided.approved
+      ? { label: 'Approved', tone: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' }
+      : { label: 'Rejected', tone: 'bg-gray-700/40 text-gray-300 border-gray-600/40' }
+    : statusInfo(plan)
 
   const decide = async (approved) => {
     if (!token || busy) return
@@ -41,7 +45,13 @@ function PlanCard({ plan, onAfterDecision }) {
     setErr('')
     try {
       await approvePlan(token, plan.id, approved)
-      onAfterDecision?.()
+      setDecided({ approved })
+      if (approved) {
+        onAfterDecision?.()
+      } else {
+        dismissPlan(plan.id)
+        onChanged?.()
+      }
     } catch (e) {
       setErr(e.message || 'Decision failed')
     } finally {
@@ -61,6 +71,7 @@ function PlanCard({ plan, onAfterDecision }) {
             {status.label === 'Pending' && <Clock className="w-3 h-3" />}
             {status.label === 'Approved' && <CheckCircle2 className="w-3 h-3" />}
             {status.label === 'Applied' && <CheckCircle2 className="w-3 h-3" />}
+            {status.label === 'Rejected' && <XCircle className="w-3 h-3" />}
             {status.label}
           </span>
           <span className="inline-flex items-center px-2 py-0.5 text-xs rounded-full border bg-gray-800 text-gray-300 border-gray-700">
@@ -114,7 +125,7 @@ function PlanCard({ plan, onAfterDecision }) {
 }
 
 export default function RemediationPlans({ plans, onChanged }) {
-  const { refreshPendingPlans } = useChat()
+  const { refreshPendingPlans, dismissPlan } = useChat()
 
   if (!plans) return null
 
@@ -147,7 +158,7 @@ export default function RemediationPlans({ plans, onChanged }) {
       </h3>
       <div className="space-y-3">
         {sorted.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} onAfterDecision={handleAfter} />
+          <PlanCard key={plan.id} plan={plan} onAfterDecision={handleAfter} onChanged={onChanged} />
         ))}
       </div>
     </div>

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import ChatWindow from '../components/ChatWindow'
 import VisualizationView from '../components/VisualizationView'
 import ViewToggle from '../components/ViewToggle'
-import { useChat, deriveMessageMetadata } from '../context/ChatContext'
+import { useChat, deriveMessageMetadata, parseMetadata } from '../context/ChatContext'
 import { useAuth } from '../context/AuthContext'
 import { listSessionDeployments } from '../services/api'
 
@@ -86,16 +86,38 @@ function SessionView({ sessionId }) {
     if (lastDeployTouch != null) refetchDeployments()
   }, [lastDeployTouch, refetchDeployments])
 
+  // Also surface deployments referenced by background SRE alerts in this session
+  // that were created in a different session (e.g. user was in session B when
+  // an alert fired for a deployment owned by session A).
+  const allDeployments = useMemo(() => {
+    const ownIds = new Set(deployments.map((d) => d.deployment_id))
+    const extras = new Map()
+    for (const msg of messages || []) {
+      if (msg.role !== 'sre-agent') continue
+      const meta = parseMetadata(msg.metadata_json)
+      if (!meta?.deployment_id || ownIds.has(meta.deployment_id)) continue
+      if (!extras.has(meta.deployment_id)) {
+        extras.set(meta.deployment_id, {
+          deployment_id: meta.deployment_id,
+          app_name: meta.app_name || `Deployment #${meta.deployment_id}`,
+          status: 'deployed',
+          created_at: null,
+        })
+      }
+    }
+    return extras.size > 0 ? [...deployments, ...extras.values()] : deployments
+  }, [deployments, messages])
+
   const selectedDeploymentId = useMemo(() => {
-    if (deployments.length === 0) return null
+    if (allDeployments.length === 0) return null
     if (
       userSelectedDeploymentId != null &&
-      deployments.some((d) => d.deployment_id === userSelectedDeploymentId)
+      allDeployments.some((d) => d.deployment_id === userSelectedDeploymentId)
     ) {
       return userSelectedDeploymentId
     }
-    return deployments[0].deployment_id
-  }, [deployments, userSelectedDeploymentId])
+    return allDeployments[0].deployment_id
+  }, [allDeployments, userSelectedDeploymentId])
 
   useEffect(() => {
     const handler = (e) => {
@@ -121,8 +143,7 @@ function SessionView({ sessionId }) {
           <ChatWindow sessionId={sessionId} />
         ) : (
           <VisualizationView
-            sessionId={Number(sessionId)}
-            deployments={deployments}
+            deployments={allDeployments}
             selectedDeploymentId={selectedDeploymentId}
             onSelectDeployment={setUserSelectedDeploymentId}
             hadDeployments={hadDeployments}

@@ -21,9 +21,10 @@ function StatusPill({ tone, children }) {
 }
 
 export default function MetadataActions({ metadata }) {
-  const { sendMessage, refreshPendingPlans } = useChat()
+  const { sendMessage, refreshPendingPlans, dismissPlan } = useChat()
   const { token } = useAuth()
   const [busy, setBusy] = useState(false)
+  const [decided, setDecided] = useState(null) // null | { approved: bool }
 
   if (!metadata || typeof metadata !== 'object') return null
 
@@ -89,13 +90,39 @@ export default function MetadataActions({ metadata }) {
 
   // Awaiting approval (background or manual)
   if (metadata.plan_id != null && metadata.status === 'awaiting_approval') {
+    if (decided !== null) {
+      if (decided.approved) {
+        return (
+          <div className="mt-2">
+            <StatusPill tone="green">
+              <CheckCircle2 className="w-3 h-3" />
+              Approved &amp; Applied
+            </StatusPill>
+          </div>
+        )
+      }
+      return (
+        <div className="mt-2">
+          <StatusPill tone="gray">
+            <XCircle className="w-3 h-3" />
+            Rejected
+          </StatusPill>
+        </div>
+      )
+    }
+
     const decide = async (approved) => {
       if (busy) return
       setBusy(true)
       try {
         if (token) {
           await approvePlan(token, metadata.plan_id, approved)
-          await refreshPendingPlans()
+          setDecided({ approved })
+          if (approved) {
+            await refreshPendingPlans()
+          } else {
+            dismissPlan(metadata.plan_id)
+          }
         } else {
           sendMessage(approved ? 'approve' : 'reject')
         }
