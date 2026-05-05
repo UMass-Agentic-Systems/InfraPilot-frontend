@@ -20,7 +20,7 @@ export default function HeroSection() {
         applications through natural language.
       </p>
       <Link
-        to="/signin"
+        to="/register"
         className="mt-10 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors text-lg"
       >
         Get Started

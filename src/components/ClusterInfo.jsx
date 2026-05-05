@@ -1,4 +1,4 @@
-import { Cloud, MapPin, GitBranch, HardDrive, FolderOpen } from 'lucide-react'
+import { GitBranch, HardDrive, FolderOpen } from 'lucide-react'
 
 function Pill({ icon: Icon, label, highlight }) {
   return (
@@ -18,26 +18,27 @@ function Pill({ icon: Icon, label, highlight }) {
   )
 }
 
-function nodesHighlight(nodesReady, nodesTotal) {
-  if (nodesReady === 0) return 'error'
-  if (nodesReady < nodesTotal) return 'warn'
+function nodesHighlight(ready, total) {
+  if (ready === 0) return 'error'
+  if (ready < total) return 'warn'
   return null
 }
 
-export default function ClusterInfo({ cluster }) {
-  const { provider, region, version, nodesReady, nodesTotal, namespace } = cluster
+export default function ClusterInfo({ cluster, namespace }) {
+  if (!cluster) return null
+  const { k8s_version, nodes } = cluster
+  const ready = nodes?.ready ?? 0
+  const total = nodes?.total ?? 0
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Pill icon={Cloud}      label={provider} />
-      <Pill icon={MapPin}     label={region} />
-      <Pill icon={GitBranch}  label={`k8s ${version}`} />
+      {k8s_version && <Pill icon={GitBranch} label={`k8s ${k8s_version}`} />}
       <Pill
         icon={HardDrive}
-        label={`${nodesReady}/${nodesTotal} Nodes`}
-        highlight={nodesHighlight(nodesReady, nodesTotal)}
+        label={`${ready}/${total} Nodes`}
+        highlight={nodesHighlight(ready, total)}
       />
-      <Pill icon={FolderOpen} label={namespace} />
+      {namespace && <Pill icon={FolderOpen} label={namespace} />}
     </div>
   )
 }

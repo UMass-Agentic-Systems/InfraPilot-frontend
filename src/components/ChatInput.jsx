@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react'
 import { Send } from 'lucide-react'
 
-export default function ChatInput({ onSend, isTyping }) {
+export default function ChatInput({ onSend, disabled }) {
   const [value, setValue] = useState('')
   const textareaRef = useRef(null)
 
-  const canSend = value.trim().length > 0 && !isTyping
+  const canSend = value.trim().length > 0 && !disabled
 
   function handleSend() {
     if (!canSend) return
@@ -35,7 +35,7 @@ export default function ChatInput({ onSend, isTyping }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={isTyping}
+          disabled={disabled}
           placeholder="Describe your infrastructure needs..."
           className="flex-1 resize-none bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-brand-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         />
