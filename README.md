@@ -58,26 +58,21 @@ Multi-tenant namespace isolation ensures that each user's resources are securely
 | GET | `/api/v1/monitor/plans` | List all remediation plans for the authenticated user |
 | POST | `/api/v1/monitor/plans/{plan_id}/approve` | Approve or reject a pending remediation plan |
 
-## Non-Functional Requirements
+## Quickstart
 
-- **Data Security** — Passwords hashed with bcrypt; JWT-based authentication with configurable expiration; secrets excluded from logs and responses.
-- **Tenant Isolation** — Unique Kubernetes namespace per user; strict ownership checks on all API endpoints.
-- **Auditability** — Every remediation plan persists a rationale, approval decision, and execution status with timestamps.
-- **Availability** — The `/health` endpoint returns `200 OK` even when the database or K8s cluster is temporarily unreachable.
+```bash
+git clone https://github.com/UMass-Agentic-Systems/InfraPilot-frontend.git
+cd InfraPilot-frontend
+npm install
+cp .env.example .env        # adjust VITE_API_BASE_URL if backend isn't on localhost:8000
+npm run dev                 # http://localhost:5173
+npm run build               # production bundle in dist/
+```
 
-## Challenges & Risks
+For prerequisites, environment variables, deployment steps, and CI details, see [BUILD.md](BUILD.md).
 
-### 1. LLM Output Reliability
-The Provisioning Agent depends on Gemini-Pro to generate valid Kubernetes YAML from natural language. LLMs may produce malformed manifests or insecure defaults.
+## Documentation
 
-**Mitigations:** YAML validation with `yaml.safe_load()`, low LLM temperature, structured prompts with explicit output format instructions.
-
-### 2. Kubernetes Integration Complexity
-Differences between Minikube, managed clusters (GKE/EKS), and bare-metal setups introduce inconsistencies in API behavior and RBAC policies.
-
-**Mitigations:** Minikube as the development baseline with a documented setup guide; structured error handling around all K8s API calls.
-
-### 3. Project Timeline & Dependency Drift
-The project depends on rapidly evolving libraries (LangGraph, LangChain, Kubernetes Python client) and must ship within an academic semester.
-
-**Mitigations:** Pinned dependency versions in `pyproject.toml`; prioritized core workflow (register → deploy → scan → approve); sprint-based schedule with bi-weekly milestones.
+- [BUILD.md](BUILD.md) — installation, local development, production build & deployment, CI
+- [docs/api_documentation.md](docs/api_documentation.md) — REST + WebSocket API reference consumed by the frontend
+- [docs/non_functional.md](docs/non_functional.md) — non-functional requirements, challenges & risks
