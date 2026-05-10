@@ -143,6 +143,7 @@ function SessionView({ sessionId }) {
           <ChatWindow sessionId={sessionId} />
         ) : (
           <VisualizationView
+            sessionId={sessionId}
             deployments={allDeployments}
             selectedDeploymentId={selectedDeploymentId}
             onSelectDeployment={setUserSelectedDeploymentId}
